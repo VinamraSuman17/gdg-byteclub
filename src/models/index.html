@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Utensil Volume Calculator</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-color: #f0f0f0;
+      font-family: Arial, sans-serif;
+    }
+
+    #referenceLine {
+      width: 3cm;
+      height: 2px;
+      background: black;
+      margin: 20px 0;
+    }
+
+    #circle {
+      border: 2px solid #00ff00;
+      border-radius: 50%;
+      box-shadow: 0 0 20px #00ff00, 0 0 40px #00ff00;
+      position: absolute;
+      transform: translate(-50%, -50%);
+      top: 50%;
+      left: 50%;
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 15px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    input[type="range"], input[type="number"], select {
+      width: 200px;
+    }
+
+    button {
+      background: #28a745;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #218838;
+    }
+
+    #radiusUp, #radiusDown {
+      display: inline-block;
+      margin: 5px;
+      padding: 5px 10px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="referenceLine"></div>
+  <button id="calibrateButton">Calibrate</button>
+
+  <div id="circle"></div>
+
+  <div class="controls">
+    <label for="utensilType">Utensil Type:</label>
+    <select id="utensilType">
+      <option value="cylinder">Cylinder</option>
+      <option value="frustum">Frustum</option>
+    </select>
+
+    <!-- Always visible radius slider -->
+    <label for="radiusSlider">Radius (cm):</label>
+    <input type="range" id="radiusSlider" min="0.1" max="50" step="0.1" value="0.1">
+    <span id="radiusValue">0.1</span>
+    <button id="radiusUp">▲</button>
+    <button id="radiusDown">▼</button>
+
+    <!-- Cylinder-specific inputs -->
+    <div id="cylinderInputs">
+      <label for="heightInput">Height (cm):</label>
+      <input type="number" id="heightInput" min="0.1" step="0.1" value="0.1">
+    </div>
+
+    <!-- Frustum-specific inputs -->
+    <div id="frustumInputs" style="display: none;">
+      <label for="upperRadius">Upper Radius (cm):</label>
+      <input type="number" id="upperRadius" min="0.1" step="0.1" value="0.1">
+
+      <label for="lowerRadius">Lower Radius (cm):</label>
+      <input type="number" id="lowerRadius" min="0.1" step="0.1" value="0.1">
+
+      <label for="frustumHeight">Height (cm):</label>
+      <input type="number" id="frustumHeight" min="0.1" step="0.1" value="0.1">
+    </div>
+
+    <button id="confirmButton">Confirm</button>
+  </div>
+
+  <script>
+    let effectiveDPI = 96;
+
+    const circle = document.getElementById('circle');
+    const radiusSlider = document.getElementById('radiusSlider');
+    const radiusValue = document.getElementById('radiusValue');
+    const heightInput = document.getElementById('heightInput');
+    const upperRadius = document.getElementById('upperRadius');
+    const lowerRadius = document.getElementById('lowerRadius');
+    const frustumHeight = document.getElementById('frustumHeight');
+    const utensilType = document.getElementById('utensilType');
+    const confirmButton = document.getElementById('confirmButton');
+    const calibrateButton = document.getElementById('calibrateButton');
+    const referenceLine = document.getElementById('referenceLine');
+    const cylinderInputs = document.getElementById('cylinderInputs');
+    const frustumInputs = document.getElementById('frustumInputs');
+    const radiusUp = document.getElementById('radiusUp');
+    const radiusDown = document.getElementById('radiusDown');
+
+    function calculateEffectiveDPI(actualLengthCm) {
+      const referenceLinePx = referenceLine.offsetWidth;
+      effectiveDPI = (referenceLinePx * 2.54) / actualLengthCm;
+      alert(Effective DPI calculated: ${effectiveDPI.toFixed(2)});
+    }
+
+    calibrateButton.addEventListener('click', () => {
+      const actualLengthCm = parseFloat(prompt('Measure the reference line with a ruler and enter its actual length in cm:'));
+      if (!isNaN(actualLengthCm) && actualLengthCm > 0) {
+        calculateEffectiveDPI(actualLengthCm);
+      } else {
+        alert('Please enter a valid number greater than 0.');
+      }
+    });
+
+    radiusSlider.addEventListener('input', (e) => {
+      const radiusCm = parseFloat(e.target.value);
+      radiusValue.textContent = radiusCm.toFixed(1);
+      updateCircleSize(radiusCm);
+    });
+
+    radiusUp.addEventListener('click', () => adjustRadius(0.1));
+    radiusDown.addEventListener('click', () => adjustRadius(-0.1));
+
+    function adjustRadius(delta) {
+      let radiusCm = parseFloat(radiusSlider.value) + delta;
+      radiusCm = Math.max(0.1, Math.min(50, radiusCm));
+      radiusSlider.value = radiusCm;
+      radiusValue.textContent = radiusCm.toFixed(1);
+      updateCircleSize(radiusCm);
+    }
+
+    confirmButton.addEventListener('click', () => {
+      if (utensilType.value === 'cylinder') {
+        const volume = Math.PI * Math.pow(radiusSlider.value, 2) * heightInput.value;
+        alert(Cylinder Volume: ${volume.toFixed(2)} cm³);
+      } else {
+        const volume = (1 / 3) * Math.PI * frustumHeight.value * (Math.pow(upperRadius.value, 2) + upperRadius.value * lowerRadius.value + Math.pow(lowerRadius.value, 2));
+        alert(Frustum Volume: ${volume.toFixed(2)} cm³);
+      }
+    });
+
+    utensilType.addEventListener('change', () => {
+      cylinderInputs.style.display = utensilType.value === 'cylinder' ? 'block' : 'none';
+      frustumInputs.style.display = utensilType.value === 'frustum' ? 'block' : 'none';
+    });
+
+    function updateCircleSize(radiusCm) {
+      const radiusPx = cmToPixels(radiusCm);
+      circle.style.width = ${radiusPx * 2}px;
+      circle.style.height = ${radiusPx * 2}px;
+    }
+
+    function cmToPixels(cm) {
+      return (cm / 2.54) * effectiveDPI;
+    }
+
+    updateCircleSize(0.1);
+  </script>
+</body>
+
+</html>
